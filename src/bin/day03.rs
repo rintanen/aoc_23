@@ -87,7 +87,7 @@ fn find_adjacent_engine_parts<'a>(symbol: &Symbol, engine_parts: &'a Vec<EngineP
     if found_neighbours.len() == 2 {
         return Some(found_neighbours);
     }
-    Noneadd
+    None
 }
 
 
