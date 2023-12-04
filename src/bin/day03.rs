@@ -94,8 +94,8 @@ fn find_adjacent_engine_parts<'a>(symbol: &Symbol, engine_parts: &'a Vec<EngineP
 fn main() {
     let input = include_str!("../../inputs/day03.in");
 
-    let mut engine_parts: Vec<EnginePart> = Vec::with_capacity(1000);
-    let mut symbols: Vec<Symbol> = Vec::with_capacity(1000);
+    let mut engine_parts: Vec<EnginePart> = Vec::new();
+    let mut symbols: Vec<Symbol> = Vec::new();
     for (y, line) in input.lines().enumerate() {
         let engine_part_items_items = find_numbers(line);
         let symbol_items = line.split(|c: char| split_for_symbols(c)).filter(|w| !w.is_empty()).collect::<HashSet<&str>>();
