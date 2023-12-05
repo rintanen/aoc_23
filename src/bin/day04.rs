@@ -40,10 +40,11 @@ impl Card {
     }
 
     fn worth(&self) -> u32 {
-        if self.number_of_matches() == 0 {
+        let matches = self.number_of_matches();
+        if matches == 0 {
             return 0;
         }
-        2u32.pow(self.number_of_matches() - 1)
+        2u32.pow(matches - 1)
     }
 }
 
