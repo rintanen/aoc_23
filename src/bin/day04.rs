@@ -38,39 +38,33 @@ impl Card {
             .try_into()
             .unwrap()
     }
-
-    fn worth(&self) -> u32 {
-        let matches = self.number_of_matches();
-        if matches == 0 {
-            return 0;
-        }
-        2u32.pow(matches - 1)
-    }
 }
 
-
-fn pt2_calculate_number_of_cards(card: &Card, all_cards: &[Card], card_number: usize) -> u32 {
-    let mut matches = card.number_of_matches();
+fn pt2_calculate_number_of_cards(matches: &u32, all_matches: &[u32], card_number: usize) -> u32 {
+    let mut matches = *matches;
     for n in card_number+1..card_number+1+matches as usize {
-        matches += pt2_calculate_number_of_cards(&all_cards[n], all_cards, n);
+        matches += pt2_calculate_number_of_cards(&all_matches[n], all_matches, n);
     }
     matches
 }
 
+fn worth(matches: u32) -> u32 {
+    if matches == 0 {
+        return 0;
+    }
+    2u32.pow(matches - 1)
+}
+
 
 fn main() {
-    /*
-    refaktrointi
-    muuta rakenne niin että lasketaan vaan suoraan montako matchia niin ei tarvi uudestaan ja uudestaan
-    */
     let input = include_str!("../../inputs/day04.in");
-    let cards = input.lines().map(|line| Card::new(line)).collect::<Vec<_>>();
-
-    let pt1 = cards.iter().fold(0, |acc, card| acc + card.worth());
+    let all_matches = input.lines()
+        .map(|line| Card::new(line).number_of_matches())
+        .collect::<Vec<_>>();
+    let pt1 = all_matches.iter().fold(0, |acc, matches| acc + worth(*matches));
     println!("pt1: {}", pt1);
-
-    let pt2 = cards.iter().enumerate()
-        .map(|(i, card)| 1 + pt2_calculate_number_of_cards(card, &cards, i))
+    let pt2 = all_matches.iter().enumerate()
+        .map(|(i, matches)| 1 + pt2_calculate_number_of_cards(matches, &all_matches, i))
         .sum::<u32>();
     println!("pt2: {}", pt2);
 }
