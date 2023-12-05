@@ -50,28 +50,27 @@ impl Card {
 
 
 fn pt2_calculate_number_of_cards(card: &Card, all_cards: &[Card], card_number: usize) -> u32 {
-    let mut n_matches = card.number_of_matches();
-    if n_matches == 0 {
-        return n_matches;
+    let mut matches = card.number_of_matches();
+    for n in card_number+1..card_number+1+matches as usize {
+        matches += pt2_calculate_number_of_cards(&all_cards[n], all_cards, n);
     }
-    for n in card_number..card_number + n_matches as usize {
-        n_matches += pt2_calculate_number_of_cards(&all_cards[n], all_cards, n);
-    }
-    n_matches
+    matches
 }
 
 
-
 fn main() {
+    /*
+    refaktrointi
+    muuta rakenne niin että lasketaan vaan suoraan montako matchia niin ei tarvi uudestaan ja uudestaan
+    */
     let input = include_str!("../../inputs/day04.in");
+    let cards = input.lines().map(|line| Card::new(line)).collect::<Vec<_>>();
 
-    let pt1 = input.lines()
-        .map(|line| Card::new(line))
-        .fold(0, |acc, card| acc + card.worth());
+    let pt1 = cards.iter().fold(0, |acc, card| acc + card.worth());
     println!("pt1: {}", pt1);
 
-
-    let all_cards = input.lines()
-        .map(|line| Card::new(line))
-        .collect::<Vec<_>>();
+    let pt2 = cards.iter().enumerate()
+        .map(|(i, card)| 1 + pt2_calculate_number_of_cards(card, &cards, i))
+        .sum::<u32>();
+    println!("pt2: {}", pt2);
 }
