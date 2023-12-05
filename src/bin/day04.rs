@@ -48,6 +48,19 @@ impl Card {
 }
 
 
+fn pt2_calculate_number_of_cards(card: &Card, all_cards: &[Card], card_number: usize) -> u32 {
+    let mut n_matches = card.number_of_matches();
+    if n_matches == 0 {
+        return n_matches;
+    }
+    for n in card_number..card_number + n_matches as usize {
+        n_matches += pt2_calculate_number_of_cards(&all_cards[n], all_cards, n);
+    }
+    n_matches
+}
+
+
+
 fn main() {
     let input = include_str!("../../inputs/day04.in");
 
