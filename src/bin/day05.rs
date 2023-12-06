@@ -60,13 +60,12 @@ fn map_seed_to_location(seed: u64, maps: &[Map]) -> u64 {
     item
 }
 
-
-fn binary_search_minimizer(maps: &[Map], low: u64, high: u64) -> u64 {
+fn binary_search(maps: &[Map], (low, high): (u64, u64)) -> u64 {
     let mut low = low;
     let mut high = high;
     while high - low > 1 {
         let mid = low + (high - low) / 2;
-        let left = map_seed_to_location(mid-1, maps);
+        let left = map_seed_to_location(mid - 1, maps);
         let right = map_seed_to_location(mid + 1, maps);
         if left <= right {
             high = mid;
@@ -74,11 +73,8 @@ fn binary_search_minimizer(maps: &[Map], low: u64, high: u64) -> u64 {
             low = mid;
         }
     }
-    // low + (high - low) / 2
-    map_seed_to_location(low + (high - low) / 2, maps)
+    map_seed_to_location(low, maps)
 }
-
-
 
 fn main() {
     let input = include_str!("../../inputs/day05.in");
@@ -89,20 +85,18 @@ fn main() {
     let maps = section_iter
         .map(|section| parse_map(section))
         .collect::<Vec<Map>>();
-    //
+
     let pt1 = seeds
         .iter()
         .map(|seed| map_seed_to_location(*seed, &maps))
         .min()
         .unwrap();
     println!("Part 1: {:?}", pt1);
-    //
+
     let seed_ranges = seeds.chunks(2).map(|s| (s[0], s[0] + s[1] - 1)).collect::<Vec<_>>();
     let pt2 = seed_ranges.iter()
-        .map(|seed_range| binary_search_minimizer(&maps, seed_range.0, seed_range.1))
+        .map(|seed_range| binary_search(&maps, *seed_range))
         .min()
         .unwrap();
-    // let result = binary_search_minimizer(&maps, 20816377, 617524634);
     println!("Part 2: {:?}", pt2);
-    // dbg!(result);
 }
