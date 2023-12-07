@@ -38,7 +38,7 @@ fn parse_seeds(input: &str) -> Vec<u64> {
 }
 
 fn parse_map(section: &str) -> Map {
-    let mut lines = section.lines().skip(1).collect::<Vec<_>>();
+    let lines = section.lines().skip(1).collect::<Vec<_>>();
     let ranges = lines.iter()
         .map(|line| {
             let mut line_iter = line.split_whitespace();
