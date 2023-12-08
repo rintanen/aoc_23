@@ -33,11 +33,11 @@ impl Hand {
 
         let score = {
             match rank {
-                Rank::FiveOfAKind => 100000000,
-                Rank::FourOfAKind => 10000000,
-                Rank::FullHouse => 1000000,
-                Rank::ThreeOfAKind => 100000,
-                Rank::TwoPairs => 10000,
+                Rank::FiveOfAKind => 100_000_000,
+                Rank::FourOfAKind => 10_000_000,
+                Rank::FullHouse => 1_000_000,
+                Rank::ThreeOfAKind => 100_000,
+                Rank::TwoPairs => 10_000,
                 Rank::OnePair => 1000,
                 Rank::HighCard => 0,
             }
@@ -76,7 +76,7 @@ fn rank_with_joker_rule(cards: &[u32]) -> Rank {
     if num_jokers == 0 {
         return rank_without_joker_rule(cards.as_ref());
     }
-    let cards_without_jokers = cards.iter().cloned().filter(|card| *card == 1).collect::<Vec<u32>>();
+    let cards_without_jokers = cards.iter().cloned().filter(|card| *card != 1).collect::<Vec<u32>>();
     let rank_without_jokers = rank_without_joker_rule(cards_without_jokers.as_ref());
     let rank_with_jokers = match rank_without_jokers {
         Rank::FiveOfAKind => Rank::FiveOfAKind,
@@ -103,7 +103,7 @@ fn rank_with_joker_rule(cards: &[u32]) -> Rank {
                 4 => Rank::FiveOfAKind,
                 _ => panic!("Invalid number of jokers (has to be between 1-4): {}", num_jokers),
             },
-        _ => panic!("Invalid rank (fives, fullhouse not possible): {:?}", rank_without_jokers),
+        _ => panic!("Invalid rank (fullhouse not possible): {:?}", rank_without_jokers),
     };
     rank_with_jokers
 }
@@ -180,10 +180,11 @@ fn calculate_winnings(hands: &[Hand]) -> u32 {
 
 fn main() {
     let input = include_str!("../../inputs/day07.in");
+    // PT1
     let hands = input.lines().map(|line| parse_hand(line, Rules::NoJokers)).collect::<Vec<Hand>>();
     let pt1_winnings = calculate_winnings(&hands);
     println!("pt1: {}", pt1_winnings);
-
+    // PT2
     let hands_joker_rule = input.lines().map(|line| parse_hand(line, Rules::Jokers)).collect::<Vec<Hand>>();
     let pt2_winnings = calculate_winnings(&hands_joker_rule);
     println!("pt2: {}", pt2_winnings);
