@@ -31,8 +31,6 @@ fn main() {
         .lines()
         .skip(2)
         .map(|line| parse_node(line))
-        .collect::<Vec<_>>();
-    let nodes: HashMap<String, (String, String)> = nodes.into_iter().collect();
-
+        .collect::<HashMap<String, Node>>();
     dbg!(nodes);
 }
