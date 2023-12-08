@@ -1,69 +1,45 @@
 use itertools::Itertools;
 
 #[derive(Debug)]
+enum Rules {
+    NoJokers,
+    Jokers,
+}
+
+#[derive(Debug)]
+enum Rank {
+    HighCard,
+    OnePair,
+    TwoPairs,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    FiveOfAKind,
+}
+
+#[derive(Debug)]
 struct Hand {
     cards: Vec<u32>,
     bid: u32,
+    rules: Rules,
 }
 
 impl Hand {
-    fn is_five_of_a_kind(&self) -> bool {
-        self.cards.iter().all(|card| *card == self.cards[0])
-    }
+    fn value(&self) -> [u32; 5] {
+        let rank = match self.rules {
+            Rules::NoJokers => rank_without_joker_rule(self.cards.as_ref()),
+            Rules::Jokers => rank_with_joker_rule(self.cards.as_ref()),
+        };
 
-    fn is_four_of_a_kind(&self) -> bool {
-        self.cards.iter().any(|card| self.cards.iter().filter(|c| **c == *card).count() == 4)
-    }
-
-    fn is_full_house(&self) -> bool {
-        self.is_three_of_a_kind() && self.is_one_pair()
-    }
-
-    fn is_three_of_a_kind(&self) -> bool {
-        self.cards.iter().any(|card| self.cards.iter().filter(|c| **c == *card).count() == 3)
-    }
-
-    fn is_two_pairs(&self) -> bool {
-        let mut sorted_cards = self.cards.clone();
-        sorted_cards.sort();
-
-        let mut count = 1;
-        let mut pairs = 0;
-
-        for i in 1..sorted_cards.len() {
-            if sorted_cards[i] == sorted_cards[i - 1] {
-                count += 1;
-            } else {
-                if count == 2 {
-                    pairs += 1;
-                }
-                count = 1;
-            }
-        }
-
-        pairs == 2 && count == 2
-    }
-
-    fn is_one_pair(&self) -> bool {
-        self.cards.iter().any(|card| self.cards.iter().filter(|c| **c == *card).count() == 2)
-    }
-
-    fn worth(&self) -> [u32; 5] {
         let score = {
-            if self.is_five_of_a_kind() {
-                100000000
-            } else if self.is_four_of_a_kind() {
-                10000000
-            } else if self.is_full_house() {
-                1000000
-            } else if self.is_three_of_a_kind() {
-                100000
-            } else if self.is_two_pairs() {
-                10000
-            } else if self.is_one_pair() {
-                1000
-            } else {
-                0
+            match rank {
+                Rank::FiveOfAKind => 100000000,
+                Rank::FourOfAKind => 10000000,
+                Rank::FullHouse => 1000000,
+                Rank::ThreeOfAKind => 100000,
+                Rank::TwoPairs => 10000,
+                Rank::OnePair => 1000,
+                Rank::HighCard => 0,
             }
         };
         [
@@ -76,12 +52,102 @@ impl Hand {
     }
 }
 
-fn map_card_to_value(card: char) -> u32 {
+fn rank_without_joker_rule(cards: &[u32]) -> Rank {
+    if is_five_of_a_kind(cards) {
+        Rank::FiveOfAKind
+    } else if is_four_of_a_kind(cards) {
+        Rank::FourOfAKind
+    } else if is_full_house(cards) {
+        Rank::FullHouse
+    } else if is_three_of_a_kind(cards) {
+        Rank::ThreeOfAKind
+    } else if is_two_pairs(cards) {
+        Rank::TwoPairs
+    } else if is_one_pair(cards) {
+        Rank::OnePair
+    } else {
+        Rank::HighCard
+    }
+}
+
+
+fn rank_with_joker_rule(cards: &[u32]) -> Rank {
+    let num_jokers = cards.iter().filter(|card| **card == 1).count();
+    if num_jokers == 0 {
+        return rank_without_joker_rule(cards.as_ref());
+    }
+    let cards_without_jokers = cards.iter().cloned().filter(|card| *card == 1).collect::<Vec<u32>>();
+    let rank_without_jokers = rank_without_joker_rule(cards_without_jokers.as_ref());
+    let rank_with_jokers = match rank_without_jokers {
+        Rank::FiveOfAKind => Rank::FiveOfAKind,
+        Rank::FourOfAKind => Rank::FiveOfAKind,
+        Rank::ThreeOfAKind =>
+            match num_jokers {
+                1 => Rank::FourOfAKind,
+                2 => Rank::FiveOfAKind,
+                _ => panic!("Invalid number of jokers (has to be 1 or 2): {}", num_jokers),
+            },
+        Rank::TwoPairs => Rank::FullHouse,
+        Rank::OnePair =>
+            match num_jokers {
+                1 => Rank::ThreeOfAKind,
+                2 => Rank::FourOfAKind,
+                3 => Rank::FiveOfAKind,
+                _ => panic!("Invalid number of jokers (has to be between 1-3): {}", num_jokers),
+            },
+        Rank::HighCard =>
+            match num_jokers {
+                1 => Rank::OnePair,
+                2 => Rank::ThreeOfAKind,
+                3 => Rank::FourOfAKind,
+                4 => Rank::FiveOfAKind,
+                _ => panic!("Invalid number of jokers (has to be between 1-4): {}", num_jokers),
+            },
+        _ => panic!("Invalid rank (fives, fullhouse not possible): {:?}", rank_without_jokers),
+    };
+    rank_with_jokers
+}
+
+fn is_five_of_a_kind(cards: &[u32]) -> bool {
+    cards.iter().all(|card| *card == cards[0])
+}
+
+fn is_four_of_a_kind(cards: &[u32]) -> bool {
+    cards.iter().any(|card| cards.iter().filter(|c| **c == *card).count() == 4)
+}
+
+fn is_full_house(cards: &[u32]) -> bool {
+    is_three_of_a_kind(cards) && is_one_pair(cards)
+}
+
+fn is_three_of_a_kind(cards: &[u32]) -> bool {
+    cards.iter().any(|card| cards.iter().filter(|c| **c == *card).count() == 3)
+}
+
+fn is_two_pairs(cards: &[u32]) -> bool {
+    let mut pairs = vec![];
+    for card in cards {
+        if pairs.contains(card) {
+            continue;
+        }
+        if cards.iter().filter(|c| **c == *card).count() == 2 {
+            pairs.push(*card);
+        }
+    }
+    pairs.len() == 2
+}
+
+fn is_one_pair(cards: &[u32]) -> bool {
+    cards.iter().any(|card| cards.iter().filter(|c| **c == *card).count() == 2)
+}
+
+
+fn map_card_to_value(card: char, rules: &Rules) -> u32 {
     match card {
         'A' => 14,
         'K' => 13,
         'Q' => 12,
-        'J' => 11,
+        'J' => match rules {Rules::NoJokers => 11, Rules::Jokers => 1},
         'T' => 10,
         '9' => 9,
         '8' => 8,
@@ -95,23 +161,31 @@ fn map_card_to_value(card: char) -> u32 {
     }
 }
 
-fn parse_hand(line: &str) -> Hand {
+fn parse_hand(line: &str, rules: Rules) -> Hand {
     let mut hand_iter = line.split_whitespace();
     Hand {
-        cards: hand_iter.next().unwrap().chars().map(|c| map_card_to_value(c)).collect(),
+        cards: hand_iter.next().unwrap().chars().map(|c| map_card_to_value(c, &rules)).collect(),
         bid: hand_iter.next().unwrap().parse::<u32>().unwrap(),
+        rules,
     }
+}
+
+fn calculate_winnings(hands: &[Hand]) -> u32 {
+    let sorted_hands = hands.iter()
+        .map(|hand| (hand.value(), hand.bid))
+        .sorted_by_key(|(value, _)| *value)
+        .collect::<Vec<_>>();
+    sorted_hands.iter().enumerate().map(|(i, hand)| hand.1 * (i as u32 + 1)).sum::<u32>()
 }
 
 fn main() {
     let input = include_str!("../../inputs/day07.in");
-    let hands = input.lines().map(|line| parse_hand(line)).collect::<Vec<Hand>>();
-    let sorted_hands = hands.iter()
-        .map(|hand| (hand.worth(),  hand.bid))
-        .sorted_by_key(|(worth, bid)| *worth)
-        .collect::<Vec<_>>();
-    let winnings = sorted_hands.iter().enumerate().map(|(i, hand)| hand.1 * (i as u32 + 1)).sum::<u32>();
+    let hands = input.lines().map(|line| parse_hand(line, Rules::NoJokers)).collect::<Vec<Hand>>();
+    let pt1_winnings = calculate_winnings(&hands);
+    println!("pt1: {}", pt1_winnings);
 
-    // dbg!(&sorted_hands[0..20]);
-    println!("pt1: {}", winnings);
+    let hands_joker_rule = input.lines().map(|line| parse_hand(line, Rules::Jokers)).collect::<Vec<Hand>>();
+    let pt2_winnings = calculate_winnings(&hands_joker_rule);
+    println!("pt2: {}", pt2_winnings);
+
 }
