@@ -1,8 +1,8 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use itertools::Itertools;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Node {
+    name: String,
     left: String,
     right: String,
 }
@@ -18,6 +18,7 @@ fn parse_node(line: &str) -> (String, Node) {
     let left = iter.next().unwrap();
     let right = iter.next().unwrap();
     let node = Node {
+        name: name.to_string(),
         left: left.to_string(),
         right: right.to_string(),
     };
@@ -25,39 +26,29 @@ fn parse_node(line: &str) -> (String, Node) {
 }
 
 
-fn pt1_walk_tree_from_to(nodes: &HashMap<String, Node>, from: &Node, to: &Node, directions: &Vec<char>) -> u32 {
-    let mut steps = 0;
+fn walk_tree_from_to(nodes: &HashMap<String, Node>, from: &Node, to: &str, directions: &Vec<char>) -> usize {
     let mut node = from;
-    for direction in directions.iter().cycle() {
+    let steps = directions.iter().cycle().position(|direction| {
         node = match direction {
             'L' => nodes.get(&node.left).unwrap(),
             'R' => nodes.get(&node.right).unwrap(),
             _ => panic!("Invalid direction: {}", direction),
         };
-        steps += 1;
-        if node == to {
-            break;
-        }
-    }
-    steps
+        node.name.ends_with(to)
+    });
+    steps.unwrap() + 1
 }
 
-fn pt2_walk_tree_from_to(nodes: &HashMap<String, Node>, from: &Vec<&Node>, to: &HashSet<&Node>, directions: &Vec<char>) -> u32 {
-    let mut steps = 0;
-    let mut current_nodes = from.clone();
-    for direction in directions.iter().cycle() {
-        current_nodes = match direction {
-            'L' => current_nodes.iter().map(|node| nodes.get(&node.left).unwrap()).collect(),
-            'R' => current_nodes.iter().map(|node| nodes.get(&node.right).unwrap()).collect(),
-            _ => panic!("Invalid direction: {}", direction),
-        };
-        steps += 1;
-        if current_nodes.iter().all(|node| to.contains(*node)) {
-            break;
-        }
+
+fn gcd(mut a: usize, mut b: usize) -> usize {
+    while b != 0 {
+        let temp = b;
+        b = a % b;
+        a = temp;
     }
-    steps
+    a
 }
+
 
 fn main() {
     let input = include_str!("../../inputs/day08.in");
@@ -67,13 +58,13 @@ fn main() {
         .skip(2)
         .map(|line| parse_node(line))
         .collect::<HashMap<String, Node>>();
-    // let steps = pt1_walk_tree_from_to(&nodes, &nodes["AAA"], &nodes["ZZZ"], &instructions);
-    // println!("pt1: {}", steps);
+    let steps = walk_tree_from_to(&nodes, &nodes["AAA"], "ZZZ", &instructions);
+    println!("pt1: {}", steps);
 
-    let starts = nodes.iter().filter(|(name, node)| name.ends_with('A')).map(|(_, node)| node).collect::<Vec<_>>();
-    let ends = nodes.iter().filter(|(name, node)| name.ends_with('Z')).map(|(_, node)| node).collect::<HashSet<_>>();
-    // dbg!(starts);
-    // dbg!(ends);
-    let steps = pt2_walk_tree_from_to(&nodes, &starts, &ends, &instructions);
+    let starts = nodes.iter().filter(|(name, _node)| name.ends_with('A')).map(|(_, node)| node).collect::<Vec<_>>();
+
+    let steps = starts.iter()
+        .map(|node| walk_tree_from_to(&nodes, &node, "Z", &instructions))
+        .fold(1, |ans, x| (x*ans) / gcd(x,ans));
     println!("pt2: {}", steps);
 }
