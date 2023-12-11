@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use itertools::iproduct;
 
 #[derive(Debug)]
 struct Grid <'a> {
@@ -38,43 +39,43 @@ impl<'a> Grid<'a> {
     }
 }
 
-fn travel_pipe(grid: &Grid, start: (usize, usize)) -> usize {
-    let mut distance = 0;
+fn map_main_loop(grid: &Grid, start: (usize, usize)) -> HashSet<(usize, usize)> {
+    let mut main_loop: HashSet<(usize, usize)> = HashSet::new();
     let mut loc = start;
     let mut prev = start;
     let mut temp;
     loop {
         temp = loc;
         loc = next_possible_loc(grid, &loc.0, &loc.1, &prev);
+        main_loop.insert(loc);
         prev = temp;
-        distance += 1;
         if loc == start {
             break;
         }
     }
-    distance
+    main_loop
 }
 
-fn try_to_find_way_out(grid: &Grid, start: (usize, usize)) -> usize {
-    let mut points: HashSet<(usize, usize)> = HashSet::new();
-    let mut temp;
-    /*
-    liiku niin kauan sallitusti kunnes ei enää pysty liikkumaan tai jos pääsee reunalle
-    */
-    loop {
-        if !points.insert(start) {
-
-            ;
-        }
-        temp = loc;
-        loc = next_possible_loc(grid, &loc.0, &loc.1, &prev);
-        prev = temp;
-        distance += 1;
-        if loc == start {
-            break;
-        }
-    }
-}
+// fn try_to_find_way_out(grid: &Grid, start: (usize, usize)) -> bool {
+//     let mut points: HashSet<(usize, usize)> = HashSet::new();
+//     let mut temp;
+//     /*
+//     liiku niin kauan sallitusti kunnes ei enää pysty liikkumaan tai jos pääsee reunalle
+//     */
+//     loop {
+//         if !points.insert(start) {
+//
+//             ;
+//         }
+//         temp = loc;
+//         loc = next_possible_loc(grid, &loc.0, &loc.1, &prev);
+//         prev = temp;
+//         distance += 1;
+//         if loc == start {
+//             break;
+//         }
+//     }
+// }
 
 
 fn next_possible_loc(grid: &Grid, x: &usize, y: &usize, previous: &(usize, usize)) -> (usize, usize) {
@@ -107,13 +108,6 @@ fn next_possible_loc(grid: &Grid, x: &usize, y: &usize, previous: &(usize, usize
         (b'F', b'|'), (b'F', b'L'), (b'F', b'J'), (b'F', b'7'),
         (b'S', b'|'), (b'S', b'L'), (b'S', b'J'), (b'S', b'F'),
     ];
-    // println!("Current location: {:?}", (x, y));
-
-    // dbg!(*grid.get(x, y).unwrap() as char , *grid.get(&(x + 1), y).unwrap() as char);
-    // dbg!(*grid.get(x, y).unwrap() as char , *grid.get(&(x - 1), y).unwrap() as char);
-    // dbg!(*grid.get(x, y).unwrap() as char , *grid.get(x, &(y + 1)).unwrap() as char);
-    // dbg!(*grid.get(x, y).unwrap() as char , *grid.get(x, &(y - 1)).unwrap() as char);
-
 
     if allowed_right.contains(&(*grid.get(x, y).unwrap(), *grid.get(&right.0, &right.1).unwrap())) && &right != previous && right.0 <= grid.cols {
         right
@@ -135,10 +129,13 @@ fn main() {
     let grid = Grid::new(input.as_bytes());
     let start = grid.find(b'S').unwrap();
 
-    let length = travel_pipe(&grid, start);
+    let main_loop = map_main_loop(&grid, start);
+    println!("Furthest way from start {}", main_loop.len() / 2);
 
-    // pt1 toimii tarvii vain handlays jos menee reunoille
-    println!("Length of the pipe: {}", length);
-    println!("Furthest way from start {}", length / 2);
+    let possible_points = iproduct!(1..grid.cols-1, 1..grid.rows-1)
+        .filter(|(x, y)| !main_loop.contains(&(*x, *y)))
+        .collect::<Vec<_>>();
+
+    println!("{:?}", possible_points);
 
 }
