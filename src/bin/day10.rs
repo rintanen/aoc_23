@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 
 #[derive(Debug)]
 struct Grid <'a> {
@@ -37,7 +38,7 @@ impl<'a> Grid<'a> {
     }
 }
 
-fn travel_pipe_both_directions(grid: &Grid, start: (usize, usize)) -> usize {
+fn travel_pipe(grid: &Grid, start: (usize, usize)) -> usize {
     let mut distance = 0;
     let mut loc = start;
     let mut prev = start;
@@ -54,10 +55,32 @@ fn travel_pipe_both_directions(grid: &Grid, start: (usize, usize)) -> usize {
     distance
 }
 
+fn try_to_find_way_out(grid: &Grid, start: (usize, usize)) -> usize {
+    let mut points: HashSet<(usize, usize)> = HashSet::new();
+    let mut temp;
+    /*
+    liiku niin kauan sallitusti kunnes ei enää pysty liikkumaan tai jos pääsee reunalle
+    */
+    loop {
+        if !points.insert(start) {
+
+            ;
+        }
+        temp = loc;
+        loc = next_possible_loc(grid, &loc.0, &loc.1, &prev);
+        prev = temp;
+        distance += 1;
+        if loc == start {
+            break;
+        }
+    }
+}
+
+
 fn next_possible_loc(grid: &Grid, x: &usize, y: &usize, previous: &(usize, usize)) -> (usize, usize) {
-    let left = (x.checked_sub(1), *y);
+    let left = (x.checked_sub(1).unwrap_or(0), *y);
     let right = (x + 1, *y);
-    let up = (*x, y.checked_sub(1));
+    let up = (*x, y.checked_sub(1).unwrap_or(0));
     let down = (*x, y + 1);
     
     let allowed_right = [
@@ -92,13 +115,13 @@ fn next_possible_loc(grid: &Grid, x: &usize, y: &usize, previous: &(usize, usize
     // dbg!(*grid.get(x, y).unwrap() as char , *grid.get(x, &(y - 1)).unwrap() as char);
 
 
-    if allowed_right.contains(&(*grid.get(x, y).unwrap(), *grid.get(&(x + 1), y).unwrap())) && &right != previous {
+    if allowed_right.contains(&(*grid.get(x, y).unwrap(), *grid.get(&right.0, &right.1).unwrap())) && &right != previous && right.0 <= grid.cols {
         right
-    } else if allowed_left.contains(&(*grid.get(x, y).unwrap(), *grid.get(&(x - 1), y).unwrap())) && &left != previous {
+    } else if allowed_left.contains(&(*grid.get(x, y).unwrap(), *grid.get(&left.0, &left.1).unwrap())) && &left != previous && x.checked_sub(1).is_some() {
         left
-    } else if allowed_up.contains(&(*grid.get(x, y).unwrap(), *grid.get(x, &(y - 1)).unwrap())) && &up != previous {
+    } else if allowed_up.contains(&(*grid.get(x, y).unwrap(), *grid.get(&up.0, &up.1).unwrap())) && &up != previous && y.checked_sub(1).is_some() {
         up
-    } else if allowed_down.contains(&(*grid.get(x, y).unwrap(), *grid.get(x, &(y + 1)).unwrap())) && &down != previous {
+    } else if allowed_down.contains(&(*grid.get(x, y).unwrap(), *grid.get(&down.0, &down.1).unwrap())) && &down != previous && down.1 <= grid.rows {
         down
     } else {
         panic!("No possible next location found!");
@@ -112,7 +135,7 @@ fn main() {
     let grid = Grid::new(input.as_bytes());
     let start = grid.find(b'S').unwrap();
 
-    let length = travel_pipe_both_directions(&grid, start);
+    let length = travel_pipe(&grid, start);
 
     // pt1 toimii tarvii vain handlays jos menee reunoille
     println!("Length of the pipe: {}", length);
