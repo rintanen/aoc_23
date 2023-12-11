@@ -89,5 +89,5 @@ fn main() {
     println!("Furthest way from start {}", main_loop.len() / 2);
 
     let p2 = enclosed_tiles(&grid, &main_loop);
-    println!("Number of points inside {}", p2);
+    println!("Number of points inside {}", p2 - 1);
 }
