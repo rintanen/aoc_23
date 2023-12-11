@@ -1,52 +1,35 @@
 use std::collections::HashSet;
-use itertools::iproduct;
 
-#[derive(Debug)]
-struct Grid <'a> {
-    arr: &'a [u8],
-    cols: usize,
-    rows: usize,
+struct Connection {
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool,
 }
 
-impl<'a> Grid<'a> {
-    fn new(arr: &'a [u8]) -> Grid {
-        let cols = arr.iter().position(|&b| b == 10).unwrap();
-        let rows = arr.len() / cols;
-        Grid { arr, cols, rows }
-    }
-
-    fn get(&self, x: &usize, y: &usize) -> Option<&'a u8> {
-        let index_1d = x + self.cols * y + y;
-        // add row's index to the 2d->1d grid mapping index
-        // because there is newline character between each row
-        if index_1d < self.arr.len() {
-            let res = Some(&self.arr[index_1d]);
-            res
-        } else {
-            None
-        }
-    }
-
-    fn find(&self, target: u8) ->  Option<(usize, usize)> {
-        let index_1d = self.arr.iter().position(|c| c == &target);
-        if let Some(i) = index_1d {
-            let y = i / self.cols;
-            let x = i % self.cols - y;
-            Some((x, y))
-        } else {
-            None
+impl Connection {
+    fn new(c: &u8) -> Connection {
+        match c {
+            b'-' => Connection { up: false, down: false, left: true, right: true },
+            b'|' => Connection { up: true, down: true, left: false, right: false },
+            b'J' => Connection { up: true, down: false, left: true, right: false },
+            b'L' => Connection { up: true, down: false, left: false, right: true },
+            b'7' => Connection { up: false, down: true, left: true, right: false },
+            b'F' => Connection { up: false, down: true, left: false, right: true },
+            b'S' => Connection { up: true, down: true, left: true, right: true },
+            _ => Connection { up: false, down: false, left: false, right: false },
         }
     }
 }
 
-fn map_main_loop(grid: &Grid, start: (usize, usize)) -> HashSet<(usize, usize)> {
+fn map_main_loop(grid: &Vec<Vec<Connection>>, start: (usize, usize)) -> HashSet<(usize, usize)> {
     let mut main_loop: HashSet<(usize, usize)> = HashSet::new();
     let mut loc = start;
     let mut prev = start;
     let mut temp;
     loop {
         temp = loc;
-        loc = next_possible_loc(grid, &loc.0, &loc.1, &prev);
+        loc = next_possible_loc(&grid, &loc.0, &loc.1, &prev);
         main_loop.insert(loc);
         prev = temp;
         if loc == start {
@@ -56,86 +39,55 @@ fn map_main_loop(grid: &Grid, start: (usize, usize)) -> HashSet<(usize, usize)> 
     main_loop
 }
 
-// fn try_to_find_way_out(grid: &Grid, start: (usize, usize)) -> bool {
-//     let mut points: HashSet<(usize, usize)> = HashSet::new();
-//     let mut temp;
-//     /*
-//     liiku niin kauan sallitusti kunnes ei enää pysty liikkumaan tai jos pääsee reunalle
-//     */
-//     loop {
-//         if !points.insert(start) {
-//
-//             ;
-//         }
-//         temp = loc;
-//         loc = next_possible_loc(grid, &loc.0, &loc.1, &prev);
-//         prev = temp;
-//         distance += 1;
-//         if loc == start {
-//             break;
-//         }
-//     }
-// }
-
-
-fn next_possible_loc(grid: &Grid, x: &usize, y: &usize, previous: &(usize, usize)) -> (usize, usize) {
-    let left = (x.checked_sub(1).unwrap_or(0), *y);
-    let right = (x + 1, *y);
-    let up = (*x, y.checked_sub(1).unwrap_or(0));
-    let down = (*x, y + 1);
-    
-    let allowed_right = [
-        (b'-', b'-'), (b'-', b'J'), (b'-', b'7'), (b'-', b'S'),
-        (b'L', b'-'), (b'L', b'J'), (b'L', b'7'), (b'L', b'S'),
-        (b'F', b'-'), (b'F', b'J'), (b'F', b'7'), (b'F', b'S'),
-        (b'S', b'-'), (b'S', b'J'), (b'S', b'7'),
-    ];
-    let allowed_left = [
-        (b'-', b'-'), (b'-', b'L'), (b'-', b'F'), (b'-', b'S'),
-        (b'J', b'-'), (b'J', b'L'), (b'J', b'F'), (b'J', b'S'),
-        (b'7', b'-'), (b'7', b'L'), (b'7', b'F'), (b'7', b'S'),
-        (b'S', b'-'), (b'S', b'L'), (b'S', b'F'),
-    ];
-    let allowed_up = [
-        (b'|', b'|'), (b'|', b'7'), (b'|', b'F'), (b'|', b'S'),
-        (b'L', b'|'), (b'L', b'7'), (b'L', b'F'), (b'L', b'S'),
-        (b'J', b'|'), (b'J', b'7'), (b'J', b'F'), (b'J', b'S'),
-        (b'S', b'|'), (b'S', b'7'), (b'S', b'F'), (b'S', b'L'),
-    ];
-    let allowed_down = [
-        (b'|', b'|'), (b'|', b'L'), (b'|', b'J'), (b'|', b'F'),
-        (b'7', b'|'), (b'7', b'L'), (b'7', b'J'), (b'7', b'F'),
-        (b'F', b'|'), (b'F', b'L'), (b'F', b'J'), (b'F', b'7'),
-        (b'S', b'|'), (b'S', b'L'), (b'S', b'J'), (b'S', b'F'),
-    ];
-
-    if allowed_right.contains(&(*grid.get(x, y).unwrap(), *grid.get(&right.0, &right.1).unwrap())) && &right != previous && right.0 <= grid.cols {
+fn next_possible_loc(grid: &Vec<Vec<Connection>>, y: &usize, x: &usize, previous: &(usize, usize)) -> (usize, usize) {
+    let up = (y.checked_sub(1).unwrap_or(0), *x);
+    let down = (y + 1, *x);
+    let left = (*y, x.checked_sub(1).unwrap_or(0));
+    let right = (*y, x + 1);
+    if grid[*y][*x].right && &right != previous && right.1 <= grid[0].len() {
         right
-    } else if allowed_left.contains(&(*grid.get(x, y).unwrap(), *grid.get(&left.0, &left.1).unwrap())) && &left != previous && x.checked_sub(1).is_some() {
+    } else if grid[*y][*x].left && &left != previous && x.checked_sub(1).is_some() {
         left
-    } else if allowed_up.contains(&(*grid.get(x, y).unwrap(), *grid.get(&up.0, &up.1).unwrap())) && &up != previous && y.checked_sub(1).is_some() {
+    } else if grid[*y][*x].up && &up != previous && y.checked_sub(1).is_some() {
         up
-    } else if allowed_down.contains(&(*grid.get(x, y).unwrap(), *grid.get(&down.0, &down.1).unwrap())) && &down != previous && down.1 <= grid.rows {
+    } else if grid[*y][*x].down && &down != previous && down.0 <= grid.len() {
         down
     } else {
         panic!("No possible next location found!");
     }
 }
 
-
+fn enclosed_tiles(grid: &Vec<Vec<Connection>>, main_loop: &HashSet<(usize, usize)>) -> usize {
+    let mut count = 0;
+    for row in 1..grid.len() - 1 {
+        let mut enclosed = false;
+        for col in 1..grid[0].len() - 1 {
+            if !main_loop.contains(&(row, col)) {
+                count += enclosed as usize;
+            } else if grid[row][col].up {
+                enclosed = !enclosed;
+            }
+        }
+    }
+    count
+}
 
 fn main() {
     let input = include_str!("../../inputs/day10.in");
-    let grid = Grid::new(input.as_bytes());
-    let start = grid.find(b'S').unwrap();
+    let start = input.find('S').unwrap();
+    let cols = input.find('\n').unwrap();
+    let y = start / cols;
+    let x = start % cols - y;
+    let start = (y, x);
+
+    let grid = input
+        .lines()
+        .map(|l| l.as_bytes().iter().map(|c| Connection::new(c)).collect::<Vec<_>>())
+        .collect::<Vec<Vec<Connection>>>();
 
     let main_loop = map_main_loop(&grid, start);
     println!("Furthest way from start {}", main_loop.len() / 2);
 
-    let possible_points = iproduct!(1..grid.cols-1, 1..grid.rows-1)
-        .filter(|(x, y)| !main_loop.contains(&(*x, *y)))
-        .collect::<Vec<_>>();
-
-    println!("{:?}", possible_points);
-
+    let p2 = enclosed_tiles(&grid, &main_loop);
+    println!("Number of points inside {}", p2);
 }
