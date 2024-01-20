@@ -10,7 +10,7 @@ fn main() {
     let pt1 = input.split(',').map(|word| hash(word.as_bytes())).sum::<usize>();
     dbg!(pt1);
 
-    let mut boxes: Vec<IndexMap<&str, u32>> = Vec::with_capacity(256);
+    let mut boxes: Vec<IndexMap<&str, usize>> = Vec::with_capacity(256);
     for _ in 0..256 {
         boxes.push(IndexMap::new());
     }
@@ -24,7 +24,7 @@ fn main() {
                 boxes[box_id].shift_remove(key);
             },
             "=" => {
-                let value = word[index+1..].parse::<u32>().unwrap();
+                let value = word[index+1..].parse::<usize>().unwrap();
                 boxes[box_id].insert(key, value);
             },
             _ => panic!("Unexpected character??"),
@@ -38,7 +38,7 @@ fn main() {
             box_
                 .values()
                 .enumerate()
-                .map(|(position, &value)| (i_box + 1) * (position + 1) * (value as usize))
+                .map(|(position, &value)| (i_box + 1) * (position + 1) * value)
                 .sum::<usize>()
         })
         .sum::<usize>();
