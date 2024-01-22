@@ -1,6 +1,6 @@
 use std::collections::{VecDeque, HashSet};
-
-#[derive(Clone, Copy)]
+use rayon::prelude::*;
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 enum Direction {
     Up,
     Down,
@@ -14,6 +14,7 @@ enum Propagation {
     Stop,
 }
 
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 struct Light {
     direction: Direction,
     position: (usize, usize),
@@ -25,85 +26,37 @@ impl Light {
     }
 
     fn propagate(&mut self, grid: &Vec<Vec<char>>) -> Propagation {
-        self.direction = self.next_direction(grid[self.position.0][self.position.1]);
-
-        match self.direction {
-            Direction::Right => {
-                if self.position.1 == grid[0].len() {
-                    Propagation::Stop
-                } else {
-                    self.position.1 += 1;
-                    Propagation::Continue
-                }
+        let tile = grid[self.position.0][self.position.1];
+        let propagation: Propagation;
+        match (self.direction, tile) {
+            (_, '.') => {propagation = Propagation::Continue;},
+            (Direction::Right, '|') | (Direction::Left, '|') => {
+                propagation = Propagation::Split(Light::new(Direction::Up, self.position));
             },
-            Direction::Left => {
-                if self.position.1 == 0 {
-                    Propagation::Stop
-                } else {
-                    self.position.1 -= 1;
-                    Propagation::Continue
-                }
+            (Direction::Up, '-') | (Direction::Down, '-') => {
+                propagation = Propagation::Split(Light::new(Direction::Left, self.position));
             },
-            Direction::Up => {
-                if self.position.0 == 0 {
-                    Propagation::Stop
-                } else {
-                    self.position.0 -= 1;
-                    Propagation::Continue
-                }
-            },
-            Direction::Down => {
-                if self.position.0 == grid.len() {
-                    Propagation::Stop
-                } else {
-                    self.position.0 += 1;
-                    Propagation::Continue
-                }
+            _ => {
+                propagation = Propagation::Continue;
             },
         }
-    }
 
-    /*
-    Handlays sille kun tulee splitattu valo pitää tehdä mistä se palautetaan tuonne
-    */
+        self.direction = self.next_direction(tile);
 
-    fn split(&mut self, grid: &Vec<Vec<char>>) -> Propagation {
-        match self.direction {
-            Direction::Right => {
-                if self.position.1 == grid[0].len() {
-                    Propagation::Stop
-                } else {
-                    self.position.1 += 1;
-                    Propagation::Continue
-                }
-            },
-            Direction::Left => {
-                if self.position.1 == 0 {
-                    Propagation::Stop
-                } else {
-                    self.position.1 -= 1;
-                    Propagation::Continue
-                }
-            },
-            Direction::Up => {
-                if self.position.0 == 0 {
-                    Propagation::Stop
-                } else {
-                    self.position.0 -= 1;
-                    Propagation::Continue
-                }
-            },
-            Direction::Down => {
-                if self.position.0 == grid.len() {
-                    Propagation::Stop
-                } else {
-                    self.position.0 += 1;
-                    Propagation::Continue
-                }
-            },
+        if light_hits_wall(self.position, self.direction, grid) {
+            return Propagation::Stop;
         }
+
+        // update location
+        match self.direction {
+            Direction::Right => self.position.1 += 1,
+            Direction::Left => self.position.1 -= 1,
+            Direction::Up => self.position.0 -= 1,
+            Direction::Down => self.position.0 += 1,
+        }
+        propagation
     }
-    
+
     fn next_direction(&self, tile: char) -> Direction {
         match (&self.direction, tile) {
             (_, '.') => self.direction,
@@ -127,6 +80,42 @@ impl Light {
     }
 }
 
+fn light_hits_wall(position: (usize, usize), direction: Direction, grid: &Vec<Vec<char>>) -> bool {
+    match direction {
+        Direction::Right => position.1 == grid[0].len() - 1,
+        Direction::Left => position.1 == 0,
+        Direction::Up => position.0 == 0,
+        Direction::Down => position.0 == grid.len() - 1,
+    }
+}
+
+
+fn fill_space_with_light(grid: &Vec<Vec<char>>, light: Light) -> usize {
+    let mut queue = VecDeque::new();
+    queue.push_back(light);
+
+    let mut visited: HashSet<Light> = HashSet::new();
+    while let Some(mut light) = queue.pop_front() {
+        loop {
+            if visited.contains(&light) {
+                break;
+            }
+            visited.insert(light.clone());
+            match light.propagate(&grid) {
+                Propagation::Split(splitted_light) => {
+                    queue.push_back(splitted_light);
+                    continue
+                },
+                Propagation::Continue => continue,
+                Propagation::Stop => break,
+            }
+        }
+    }
+    let visited: HashSet<(usize, usize)> = visited.iter().map(|light| light.position).collect();
+    visited.len()
+}
+
+
 fn main() {
     let input = include_str!("../../inputs/day16.in");
 
@@ -134,20 +123,35 @@ fn main() {
 
     let initial_light = Light::new(Direction::Right, (0, 0));
 
-    let mut queue: VecDeque<Light> = VecDeque::new();
+    let energized = fill_space_with_light(&grid, initial_light);
 
-    queue.push_back(initial_light);
+    dbg!(energized);
 
-    let mut visited: HashSet<(usize, usize)> = HashSet::new();
+    let mut possible_starting_lights: Vec<Light> = vec![Light::new(Direction::Right, (0, 0)),
+                                                        Light::new(Direction::Down, (0, 0)),
 
-    while let Some(mut light) = queue.pop_front() {
-        loop {
-            match light.propagate(&grid) {
-                Propagation::Split(splitted_light) => queue.push_back(splitted_light),
-                Propagation::Continue => continue,
-                Propagation::Stop => break,
-            }
-            visited.insert(light.position);
-        }
+                                                        Light::new(Direction::Left, (0, grid[0].len() - 1)),
+                                                        Light::new(Direction::Down, (0, grid[0].len() - 1)),
+
+                                                        Light::new(Direction::Up, (grid.len() - 1, 0)),
+                                                        Light::new(Direction::Right, (grid.len() - 1, 0)),
+
+                                                        Light::new(Direction::Down, (grid.len() - 1, grid[0].len() - 1)),
+                                                        Light::new(Direction::Left, (grid.len() - 1, grid[0].len() - 1)),
+                                                        ];
+    // add possible light from leftern most and righternmost column except corners
+    for i in 1..grid.len() - 1 {
+        possible_starting_lights.push(Light::new(Direction::Right, (i, 0)));
+        possible_starting_lights.push(Light::new(Direction::Left, (i, grid[0].len() - 1)));
     }
+
+    // add possible light from top and bottom row except corners
+    for i in 1..grid[0].len() - 1 {
+        possible_starting_lights.push(Light::new(Direction::Down, (0, i)));
+        possible_starting_lights.push(Light::new(Direction::Up, (grid.len() - 1, i)));
+    }
+
+    let pt2 = possible_starting_lights.par_iter().map(|light| fill_space_with_light(&grid, *light)).max().unwrap();
+    dbg!(pt2);
+
 }
