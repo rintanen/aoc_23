@@ -3,7 +3,7 @@ fn trapezoid(polygon: &Vec<(i32, i32)>) -> f64 {
     for i in 0..polygon.len() {
         let a = polygon[i];
         let b = polygon[(i + 1) % polygon.len()];
-        let delta = (a.0-b.0).abs().max((a.1-b.1).abs());
+        let delta = (a.0 - b.0).abs().max((a.1 - b.1).abs());
         sum += (a.0 + b.0) as f64 * (a.1 - b.1) as f64 + delta as f64;
     }
     sum.abs() / 2.0 + 1.0
