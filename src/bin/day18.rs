@@ -34,7 +34,7 @@ fn create_polygon(dig_pattern: Vec<(&str, i32)>) -> Vec<(i32, i32)> {
 fn main() {
     let input = include_str!("../../inputs/day18.in");
 
-    let pattern_pt1: Vec<(&str, i32)> = input
+    let dig_pattern: Vec<(&str, i32)> = input
         .lines()
         .map(|line| {
             let mut parts = line.split_whitespace();
@@ -43,14 +43,11 @@ fn main() {
             (direction, value.parse::<i32>().unwrap())
         })
         .collect();
-
-    let polygon = create_polygon(pattern_pt1);
-
+    let polygon = create_polygon(dig_pattern);
     let area_pt1 = trapezoid(&polygon);
-
     dbg!(area_pt1);
 
-    let pattern_pt2: Vec<(&str, i32)> = input
+    let dig_pattern: Vec<(&str, i32)> = input
         .lines()
         .map(|line| {
             let mut parts = line.split_whitespace().skip(2);
@@ -66,7 +63,7 @@ fn main() {
             (direction, value)
         })
         .collect();
-    let polygon = create_polygon(pattern_pt2);
+    let polygon = create_polygon(dig_pattern);
     let area_pt2 = trapezoid(&polygon);
     dbg!(area_pt2);
 }
