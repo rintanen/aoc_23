@@ -1,13 +1,15 @@
+use std::mem::transmute;
 use itertools::Itertools;
 
-fn shoelace(coords: &Vec<(i32, i32)>) -> f64 {
+fn trapezoid(polygon: &Vec<(i32, i32)>) -> f32 {
     let mut sum = 0.0;
-    for i in 0..coords.len() {
-        let j = (i + 1) % coords.len();
-        sum += coords[i].0 as f64 * coords[j].1 as f64;
-        sum -= coords[i].1 as f64 * coords[j].0 as f64;
+    for i in 0..polygon.len() {
+        let a = polygon[i];
+        let b = polygon[(i + 1) % polygon.len()];
+        let delta = (a.0-b.0).abs().max((a.1-b.1).abs());
+        sum += (a.0 + b.0) as f32 * (a.1 - b.1) as f32 + delta as f32;
     }
-    sum.abs() / 2.0
+    sum.abs() / 2.0 + 1.0
 }
 
 
@@ -20,25 +22,23 @@ fn main() {
     for line in input.lines() {
         for (direction, meters, _) in line.split_whitespace().tuples() {
             let delta = match direction {
-                "R" => (0, 1),
-                "L" => (0, -1),
-                "U" => (-1, 0),
-                "D" => (1, 0),
+                "R" => (1, 0),
+                "L" => (-1, 0),
+                "U" => (0, 1),
+                "D" => (0, -1),
                 _ => unreachable!()
             };
-            for _ in 0..meters.parse::<u32>().unwrap() {
-                polygon.push(
-                    (polygon.last().unwrap().0 + delta.0, polygon.last().unwrap().1 + delta.1)
-                );
-            }
+            let meters = meters.parse::<i32>().unwrap();
+            polygon.push(
+                (polygon.last().unwrap().0 + delta.0 * meters, polygon.last().unwrap().1 + delta.1 * meters)
+            );
         }
     }
     // Remove the last point, which is the same as the first
     polygon.pop();
 
-    // println!("{:?}", coords);
+    let area = trapezoid(&polygon);
+    dbg!(area);
 
-    let area = shoelace(&polygon);
-    println!("Area: {}", area);
-    dbg!(polygon.len());
+
 }
