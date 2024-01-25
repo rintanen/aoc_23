@@ -1,11 +1,12 @@
 use std::collections::HashMap;
+use itertools::Itertools;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Category {
     ExtremelyCoolLooking(u32),
     Musical(u32),
     Aerodynamical(u32),
-    Shinny(u32),
+    Shiny(u32),
 }
 
 #[derive(Debug)]
@@ -47,7 +48,7 @@ impl Rule {
             "x" => Category::ExtremelyCoolLooking(test_value),
             "m" => Category::Musical(test_value),
             "a" => Category::Aerodynamical(test_value),
-            "s" => Category::Shinny(test_value),
+            "s" => Category::Shiny(test_value),
             _ => unreachable!()
         };
 
@@ -106,6 +107,7 @@ fn parse_rules_and_finally(s: &str) -> (Vec<Rule>, Outcome) {
     (rules, finally)
 }
 
+
 fn parse_workflow(workflow: &str) -> Workflow {
     let brace_idx = workflow.find("{").unwrap();
     let name = workflow[..brace_idx].trim().to_string();
@@ -118,6 +120,13 @@ fn parse_workflow(workflow: &str) -> Workflow {
     }
 }
 
+#[derive(Debug)]
+struct Part {
+    x: Category,
+    a: Category,
+    m: Category,
+    s: Category
+}
 
 fn main() {
     let input = include_str!("../../inputs/day19.in");
@@ -128,6 +137,27 @@ fn main() {
         workflows.insert(workflow.name.clone(), workflow);
     }
 
-    // let fars = 1;
+    let mut parts: Vec<Part> = Vec::new();
+    for line in items.lines() {
+        let (x, a, m, s) = {
+            line[1..line.len() - 1]
+                .split(',')
+                .map(|s| {
+                    let (_, amount) = s.split_once("=").unwrap();
+                    amount.parse::<u32>().unwrap()
+                })
+                .collect_tuple()
+                .unwrap()
+        };
+        let part = Part {
+            x: Category::ExtremelyCoolLooking(x),
+            a: Category::Aerodynamical(a),
+            m: Category::Musical(m),
+            s: Category::Shiny(s)
+        };
+        parts.push(part);
+    }
+
     dbg!(workflows);
+    dbg!(parts);
 }
