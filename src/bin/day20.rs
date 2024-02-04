@@ -7,28 +7,14 @@ enum Pulse {
     High,
 }
 
-//
-// #[derive(Debug, Clone)]
-// enum ModuleType {
-//     Broadcaster,
-//     Flipflop(u8),
-//     Conjunction(HashMap<String, Pulse>),
-// }
-//
-//
-// #[derive(Debug, Clone)]
-// struct Module {
-//     name: String,
-//     module_type: ModuleType,
-//     connections: Vec<String>,
-// }
-//
-//
+enum Module {
+    Broadcaster(Broadcaster),
+    Flipflop(Flipflop),
+    Conjunction(Conjunction),
+}
 
-
-trait Module {
-    fn name(&self) -> String;
-    fn broadcast(&self, modules: &HashMap<String, Box<dyn Module>>);
+trait SendPulse {
+    fn send_pulse(&self, modules: &HashMap<String, Module>);
 }
 
 struct Broadcaster {
@@ -36,12 +22,8 @@ struct Broadcaster {
     connections: Vec<String>,
 }
 
-impl Module for Broadcaster {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn broadcast(&self, modules: &HashMap<String, Box<dyn Module>>) {
+impl SendPulse for Broadcaster {
+    fn send_pulse(&self, modules: &HashMap<String, Module>) {
         todo!()
     }
 }
@@ -52,12 +34,8 @@ struct Flipflop {
     on_off: u8,
 }
 
-impl Module for Flipflop {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn broadcast(&self, modules: &HashMap<String, Box<dyn Module>>) {
+impl SendPulse for Flipflop {
+    fn send_pulse(&self, modules: &HashMap<String, Module>) {
         todo!()
     }
 }
@@ -69,39 +47,42 @@ struct Conjunction {
 }
 
 
-impl Module for Conjunction {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn broadcast(&self, modules: &HashMap<String, Box<dyn Module>>) {
+impl SendPulse for Conjunction {
+    fn send_pulse(&self, modules: &HashMap<String, Module>) {
         todo!()
     }
 }
 
 
-fn create_module(module: &str, connections: Vec<String>) -> Box<dyn Module> {
-    if module.starts_with("broadcaster") {
-        Box::new(Broadcaster {
-            name: module.to_string(),
-            connections,
-        }) as Box<dyn Module>
-    } else if module.starts_with("%") {
-        let on_off = 0;
-        Box::new(Flipflop {
-            name: module[1..].to_string(),
-            connections,
-            on_off,
-        }) as Box<dyn Module>
-    } else if module.starts_with("&") {
-        let inputs: HashMap<String, Pulse> = HashMap::new();
-        Box::new(Conjunction {
-            name: module[1..].to_string(),
-            connections,
-            inputs,
-        }) as Box<dyn Module>
-    } else {
-        unreachable!("Unknown module type");
+fn create_module(module: &str, connections: Vec<String>) -> Module {
+    let parts = module.split(" ");
+    let module_type = parts.next().unwrap();
+    let name = parts.next().unwrap();
+    match module_type {
+        "broadcaster" => {
+            let broadcaster = Broadcaster {
+                name: name.to_string(),
+                connections,
+            };
+            Module::Broadcaster(broadcaster)
+        },
+        "flipflop" => {
+            let flipflop = Flipflop {
+                name: name.to_string(),
+                connections,
+                on_off: 0,
+            };
+            Module::Flipflop(flipflop)
+        },
+        "conjunction" => {
+            let conjunction = Conjunction {
+                name: name.to_string(),
+                connections,
+                inputs: HashMap::new(),
+            };
+            Module::Conjunction(conjunction)
+        },
+        _ => panic!("Unknown module type"),
     }
 }
 
